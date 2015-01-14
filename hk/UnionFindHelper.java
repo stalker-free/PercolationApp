@@ -1,13 +1,14 @@
 package hk;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Class, which provide methods for Hoshen-Kopelman algorithm.
  */
 public class UnionFindHelper
 {
-	private final List<Integer> labels = new ArrayList<>();
+	private Map<Integer, Integer> labels = new HashMap<>();
 
 	/**
 	 * Search for real cluster label.
@@ -20,7 +21,7 @@ public class UnionFindHelper
 		if(index > 0) index -= 1;
 		while(index != labels.get(index))
 		{
-			labels.set(index, labels.get(labels.get(index)));
+			labels.put(index, labels.get(labels.get(index)));
 			index = labels.get(index);
 		}
 		return index;
@@ -34,7 +35,7 @@ public class UnionFindHelper
 	public int union(Cell first, Cell second)
 	{
 		Cell max, min;
-		if(first.getValue() < second .getValue())
+		if(first.getValue() < second.getValue())
 		{
 			min = first;
 			max = second;
@@ -45,7 +46,7 @@ public class UnionFindHelper
 			max = first;
 		}
 		int result = find(min);
-		labels.set(result, find(max));
+		labels.put(result, find(max));
 		return min.getValue();
 	}
 
@@ -55,7 +56,8 @@ public class UnionFindHelper
 	 */
 	public int makeNewCluster()
 	{
-		labels.add(labels.size());
+		int valueToAdd = labels.size();
+		labels.put(valueToAdd, valueToAdd);
 		return labels.size();
 	}
 
@@ -88,8 +90,12 @@ public class UnionFindHelper
 		return labelSet.size();
 	}
 
-	public List<Integer> getLabels()
+	public HashMap<Integer, Integer> getLabels()
 	{
-		return labels;
+		return new HashMap<>(labels);
+	}
+
+	public void setLabels(Map<Integer, Integer> labels){
+		this.labels = new HashMap<>(labels);
 	}
 }

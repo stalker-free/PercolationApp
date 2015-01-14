@@ -54,12 +54,22 @@ public class CellRange implements Iterable<Cell>
 
 		public Cell getNorth()
 		{
-			return (currentX > 0) ? origin[currentX - 1][currentY] : ZERO_CELL;
+			return (currentX > startX) ? origin[currentX - 1][currentY] : ZERO_CELL;
 		}
 
 		public Cell getWest()
 		{
-			return (currentY > 0) ? origin[currentX][currentY - 1] : ZERO_CELL;
+			return (currentY > startY) ? origin[currentX][currentY - 1] : ZERO_CELL;
+		}
+
+		public Cell getSouth()
+		{
+			return (currentX < (endX - 1)) ? origin[currentX + 1][currentY] : ZERO_CELL;
+		}
+
+		public Cell getEast()
+		{
+			return (currentY > (endY - 1)) ? origin[currentX][currentY + 1] : ZERO_CELL;
 		}
 
 		public Cell get()
