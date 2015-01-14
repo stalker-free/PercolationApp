@@ -1,6 +1,7 @@
 package hk;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * This class is created for wrapping lattice
@@ -65,6 +66,7 @@ public class HoshenKopelman
 		int colonForThread[] = generateBounds(countOfThreads);
 
 		// Initialise the thread pool
+		ExecutorService pool = Executors.newFixedThreadPool(countOfThreads);
 		int start = 0, end = 0, i = 0;
 
 		CellRange init;
@@ -80,26 +82,14 @@ public class HoshenKopelman
 			start = end;
 		}while(++i < countOfThreads);
 
-		Thread[] pool = new Thread[countOfThreads];
 		// Run tasks
-		for(i = 0 ; i < countOfThreads ; ++i)
-		{
-			pool[i] = new Thread(markers[i]);
-			pool[i].start();
+		for(CellMarker marker : markers){
+			pool.execute(marker);
 		}
 
 		// Wait all tasks and free resources
-		try
-		{
-			for(i = 0 ; i < countOfThreads ; ++i)
-			{
-				pool[i].join();
-			}
-		}
-		catch(InterruptedException e)
-		{
-			e.printStackTrace();
-		}
+		pool.shutdown();
+		while(!pool.isTerminated()){}
 	}
 
 	public void clusterize()
