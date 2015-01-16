@@ -1,7 +1,10 @@
 package hk;
 
-public interface Cell
+public interface Cell<T extends Comparable<T>> extends Comparable<Cell<T>>
 {
-	int getValue();
-	void setValue(int value);
+	T getValue();
+	void setValue(T value);
+	Cell<T> getCell();
+	Cell<T> getReference();
+	Cell<T> getZeroCell();
 }

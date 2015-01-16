@@ -1,6 +1,7 @@
 package hk;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * This class is created for wrapping lattice
@@ -8,18 +9,17 @@ import java.util.*;
  */
 public class HoshenKopelman
 {
-	private Cell[][] initialLattice;
-	private Cell[][] resultLattice;
-	private UnionFindHelper uf;
-	private int[] sizes;
+	private Cell<Integer>[][] initialLattice;
+	private Cell<Integer>[][] resultLattice;
+	private Map<Integer, Integer> sizes;
 	private int countOfThreads;
 	private long timeElapsed;
 
-	public HoshenKopelman(Cell[][] lattice){
+	public HoshenKopelman(Cell<Integer>[][] lattice){
 		this(lattice, 1);
 	}
 
-	public HoshenKopelman(Cell[][] lattice, int countOfThreads)
+	public HoshenKopelman(Cell<Integer>[][] lattice, int countOfThreads)
 	{
 		if(countOfThreads < 1)
 		{
@@ -36,81 +36,97 @@ public class HoshenKopelman
 		this.countOfThreads = countOfThreads;
 	}
 
-	private void compute(CellRange init, CellRange result)
+	private int[] generateBounds(int areasCount)
 	{
-		Cell up, left, readOnly;
-		int upValue, leftValue;
+		int bounds[] = new int[areasCount];
 
-		for(CellRange.CellIterator it =
-		    (CellRange.CellIterator)init.iterator(),
-		    resultIt = (CellRange.CellIterator)result.iterator();
-		    it.hasNext() ;)
+		int remaining = initialLattice.length % countOfThreads;
+		int quotient = (initialLattice.length - remaining) / countOfThreads;
+
+		Arrays.fill(bounds, quotient);
+		for(int i = 0 ; remaining > 0 ; ++i, --remaining)
 		{
-			// Get next cells
-			readOnly = it.next();
-			resultIt.next();
-
-			// If cell = zero then just skip it
-			if(readOnly.getValue() == 0)
-			{
-				resultIt.set(new IntegerCell(0));
-				continue;
-			}
-
-			up = it.getNorth();
-			left = it.getWest();
-			upValue = up.getValue();
-			leftValue = left.getValue();
-
-			// Determine cell's label by surrounding cells
-			if(upValue == 0 && leftValue == 0)
-			{
-				// Mark lone cell as element of new cluster
-				resultIt.set(new IntegerCell(uf.makeNewCluster()));
-			}
-			else if(upValue == 0 || leftValue == 0)
-			{
-				resultIt.set(new IntegerCell(Math.max(resultIt.getNorth().getValue(),
-						resultIt.getWest().getValue())));
-			}
-			else
-			{
-				resultIt.set(new IntegerCell(uf.union(resultIt.getNorth(), resultIt.getWest())));
-			}
+			++bounds[i];
 		}
+
+		return bounds;
+	}
+
+	private void compute()
+	{
+		Cell<Integer> zero = initialLattice[0][0].getZeroCell();
+		// Don't create thread pool if only one is needed
+		if(countOfThreads == 1)
+		{
+			new IntegerCellMarker(new IntegerUnionFindHelper(),
+					new CellRange<>(initialLattice, zero),
+					new CellRange<>(resultLattice, zero)).run();
+			return;
+		}
+
+		// Fill array for further range distribution through threads
+		int colonForThread[] = generateBounds(countOfThreads);
+
+		// Initialise the thread pool
+		ExecutorService pool = Executors.newFixedThreadPool(countOfThreads);
+		int start = 0, end = 0, i = 0;
+
+		CellRange<Integer> init;
+		CellRange<Integer> result;
+		IntegerCellMarker[] markers = new IntegerCellMarker[countOfThreads];
+
+		// Insert tasks into pool
+		do{
+			end += colonForThread[i];
+			init = new CellRange<>(initialLattice, start, 0, end, initialLattice[0].length, zero);
+			result = new CellRange<>(resultLattice, start, 0, end, initialLattice[0].length, zero);
+			markers[i] = new IntegerCellMarker(new IntegerUnionFindHelper(), init, result);
+			start = end;
+		}while(++i < countOfThreads);
+
+		// Run tasks
+		for(IntegerCellMarker marker : markers){
+			pool.execute(marker);
+		}
+
+		// Wait all tasks and free resources
+		pool.shutdown();
+		while(!pool.isTerminated()){}
 	}
 
 	public void clusterize()
 	{
 		resultLattice = new Cell[initialLattice.length][initialLattice[0].length];
-		uf = new UnionFindHelper();
-
-		CellRange init = new CellRange(initialLattice);
-		CellRange result = new CellRange(resultLattice);
 
 		Calendar calendar = Calendar.getInstance();
 		timeElapsed = -calendar.getTimeInMillis();
-		compute(init, result);
+
+		compute();
+
 		calendar = Calendar.getInstance();
 		timeElapsed += calendar.getTimeInMillis();
 
-		sizes = new int[uf.relabel(result)];
-
+		sizes = new HashMap<>();
 		int val;
-		for(Cell[] latticeRow : resultLattice)
+		for(Cell<Integer>[] latticeRow : resultLattice)
 		{
-			for(Cell elem : latticeRow)
+			for(Cell<Integer> elem : latticeRow)
 			{
 				val = elem.getValue();
-				if(val > 0)
+				if(val == 0) continue;
+				if(sizes.get(val) == null)
 				{
-					++sizes[val - 1];
+					sizes.put(val, 1);
+				}
+				else
+				{
+					sizes.put(val, sizes.get(val) + 1);
 				}
 			}
 		}
 	}
 
-	public void test()
+	public boolean test()
 	{
 		int north, east, west, south;
 		int rows = resultLattice.length, cols = resultLattice[0].length;
@@ -125,13 +141,14 @@ public class HoshenKopelman
 					west = (j == 0) ? 0 : resultLattice[i][j - 1].getValue();
 					east = (j == (cols - 1)) ? 0 : resultLattice[i][j + 1].getValue();
 
-					assert (north == 0 || north == current);
-					assert (east == 0 || east == current);
-					assert (west == 0 || west == current);
-					assert (south == 0 || south == current);
+					if (!(north == 0 || north == current)) return false;
+					if (!(east == 0 || east == current)) return false;
+					if (!(west == 0 || west == current)) return false;
+					if (!(south == 0 || south == current)) return false;
 				}
 			}
 		}
+		return true;
 	}
 
 	@Override
@@ -163,12 +180,13 @@ public class HoshenKopelman
 		buf.append("Count of threads: ").append(countOfThreads)
 				.append(".").append(endLine);
 
-		if(resultLattice != null)
+		if(resultLattice != null && sizes != null)
 		{
+			int i = 1;
 			buf.append("Size of clusters:").append(endLine);
-			for(int i = 0 ; i < sizes.length ; ++i)
+			for(Map.Entry<Integer, Integer> size : sizes.entrySet())
 			{
-				buf.append(i + 1).append(": ").append(sizes[i]).append(endLine);
+				buf.append(size.getKey()).append(": ").append(size.getValue()).append(endLine);
 			}
 		}
 

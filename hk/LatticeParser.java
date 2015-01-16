@@ -18,7 +18,7 @@ public class LatticeParser
 		String[] lines = linePattern.split(seq);
 		String[] elements = colonPattern.split(lines[0]);
 		int rows = lines.length, cols = elements.length;
-		Cell[][] cells = new Cell[rows][cols];
+		Cell<Integer>[][] cells = new Cell[rows][cols];
 
 		int i = 0;
 		while(true)

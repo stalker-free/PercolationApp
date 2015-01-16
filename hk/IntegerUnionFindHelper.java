@@ -1,26 +1,33 @@
 package hk;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
- * Class, which provide methods for Hoshen-Kopelman algorithm.
+ * Class, which provides methods for Hoshen-Kopelman algorithm.
  */
-public class UnionFindHelper
+public class IntegerUnionFindHelper
 {
-	private final List<Integer> labels = new ArrayList<>();
+	private Map<Integer, Integer> labels = new HashMap<>();
+	private static int nextLatticeLabel;
+
+	public IntegerUnionFindHelper()
+	{
+		nextLatticeLabel = 0;
+	}
 
 	/**
 	 * Search for real cluster label.
 	 * @param cell cell for label searching.
 	 * @return Point to real cluster label of the cell.
 	 */
-	public int find(Cell cell)
+	public int find(Cell<Integer> cell)
 	{
 		int index = cell.getValue();
 		if(index > 0) index -= 1;
 		while(index != labels.get(index))
 		{
-			labels.set(index, labels.get(labels.get(index)));
+			labels.put(index, labels.get(labels.get(index)));
 			index = labels.get(index);
 		}
 		return index;
@@ -31,10 +38,10 @@ public class UnionFindHelper
 	 * @param first,second cell of clusters.
 	 * @return Minimal label of resulting cluster.
 	 */
-	public int union(Cell first, Cell second)
+	public int union(Cell<Integer> first, Cell<Integer> second)
 	{
 		Cell max, min;
-		if(first.getValue() < second .getValue())
+		if(first.getValue() < second.getValue())
 		{
 			min = first;
 			max = second;
@@ -45,8 +52,8 @@ public class UnionFindHelper
 			max = first;
 		}
 		int result = find(min);
-		labels.set(result, find(max));
-		return min.getValue();
+		labels.put(result, find(max));
+		return (int)min.getValue();
 	}
 
 	/**
@@ -55,8 +62,9 @@ public class UnionFindHelper
 	 */
 	public int makeNewCluster()
 	{
-		labels.add(labels.size());
-		return labels.size();
+		int valueToAdd = nextLabel();
+		labels.put(valueToAdd, valueToAdd);
+		return valueToAdd + 1;
 	}
 
 	/**
@@ -64,13 +72,13 @@ public class UnionFindHelper
 	 * @param dataset lattice slice.
 	 * @return Count of new labels.
 	 */
-	public int relabel(CellRange dataset)
+	public int relabel(CellRange<Integer> dataset)
 	{
 		Map<Integer, Integer> labelSet = new HashMap<>();
 		int found;
-		Cell cell;
+		Cell<Integer> cell;
 
-		CellRange.CellIterator it = (CellRange.CellIterator)dataset.iterator();
+		CellRange<Integer>.CellIterator it = (CellRange<Integer>.CellIterator)dataset.iterator();
 		while(it.hasNext())
 		{
 			cell = it.next();
@@ -88,8 +96,17 @@ public class UnionFindHelper
 		return labelSet.size();
 	}
 
-	public List<Integer> getLabels()
+	private static synchronized int nextLabel()
 	{
-		return labels;
+		return nextLatticeLabel++;
+	}
+
+	public HashMap<Integer, Integer> getLabels()
+	{
+		return new HashMap<>(labels);
+	}
+
+	public void setLabels(Map<Integer, Integer> labels){
+		this.labels = new HashMap<>(labels);
 	}
 }
