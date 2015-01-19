@@ -10,7 +10,6 @@ public class CellRange<T extends Comparable<T>> implements Iterable<Cell<T>>
 	private int startX, startY;
 	private int endX, endY;
 	private Cell<T>[][] origin;
-	private Cell<T> zeroCell;
 
 	/**
 	 * Iterator for this class.
@@ -52,29 +51,74 @@ public class CellRange<T extends Comparable<T>> implements Iterable<Cell<T>>
 			origin[currentX][currentY] = null;
 		}
 
+		public Cell<T> getNorth(Cell<T> notFound, int upperBound)
+		{
+			return (currentX > upperBound) ? origin[currentX - 1][currentY] : notFound;
+		}
+
+		public Cell<T> getWest(Cell<T> notFound, int lefterBound)
+		{
+			return (currentY > lefterBound) ? origin[currentX][currentY - 1] : notFound;
+		}
+
+		public Cell<T> getNorth(Cell<T> notFound)
+		{
+			return getNorth(notFound, startX);
+		}
+
+		public Cell<T> getWest(Cell<T> notFound)
+		{
+			return getWest(notFound, startY);
+		}
+
 		public Cell<T> getNorth()
 		{
-			return (currentX > startX) ? origin[currentX - 1][currentY] : zeroCell;
+			return getNorth(null);
 		}
 
 		public Cell<T> getWest()
 		{
-			return (currentY > startY) ? origin[currentX][currentY - 1] : zeroCell;
+			return getWest(null);
 		}
 
-		public Cell<T> getSouth()
+		public Cell<T> getCell(Cell<T> cell)
 		{
-			return (currentX < (endX - 1)) ? origin[currentX + 1][currentY] : zeroCell;
+			Cell<T> ref = getReference(cell);
+			return get((ReferenceCell<T>)ref);
 		}
 
-		public Cell<T> getEast()
+		public Cell<T> getReference(Cell<T> cell)
 		{
-			return (currentY > (endY - 1)) ? origin[currentX][currentY + 1] : zeroCell;
+			if(cell.getValue() != null) return cell;
+			Cell<T> result = cell;
+			ReferenceCell<T> ref = (ReferenceCell<T>)result;
+			while(result.getValue() == null)
+			{
+				// The cell is the reference to another cell.
+				ref = (ReferenceCell<T>)result;
+				result = get(ref);
+			}
+			return ref;
 		}
 
 		public Cell<T> get()
 		{
 			return origin[currentX][currentY];
+		}
+
+		public Cell<T> get(ReferenceCell<T> ref)
+		{
+			return origin[ref.getX()][ref.getY()];
+		}
+
+		public Cell<T> getNorthReference()
+		{
+			return new ReferenceCell<T>(currentX - 1, currentY);
+		}
+
+		public Cell<T> getWestReference()
+		{
+			return new ReferenceCell<T>(currentX, currentY - 1);
 		}
 
 		public void set(Cell<T> value)
@@ -105,9 +149,9 @@ public class CellRange<T extends Comparable<T>> implements Iterable<Cell<T>>
 	 * Construct the slice of whole lattice.
 	 * @param origin original lattice.
 	 */
-	public CellRange(Cell<T>[][] origin, Cell<T> zeroCell)
+	public CellRange(Cell<T>[][] origin)
 	{
-		this(origin, 0, 0, origin.length, origin[0].length, zeroCell);
+		this(origin, 0, 0, origin.length, origin[0].length);
 	}
 
 	/**
@@ -116,10 +160,9 @@ public class CellRange<T extends Comparable<T>> implements Iterable<Cell<T>>
 	 * @param startX,startY left-top corner of the slice.
 	 * @param endX,endY right-bottom corner of the slice.
 	 */
-	public CellRange(Cell<T>[][] origin, int startX, int startY, int endX, int endY, Cell<T> zeroCell)
+	public CellRange(Cell<T>[][] origin, int startX, int startY, int endX, int endY)
 	{
 		assert startX >= 0 && startY >= 0 && endX >= 0 && endY >= 0;
-		this.zeroCell = zeroCell.getZeroCell();
 		this.startX = startX;
 		this.startY = startY;
 		this.endX = endX;
@@ -141,10 +184,5 @@ public class CellRange<T extends Comparable<T>> implements Iterable<Cell<T>>
 
 	public int getEndY(){
 		return endY;
-	}
-
-	public Cell<T> getZeroCell()
-	{
-		return zeroCell.getZeroCell();
 	}
 }

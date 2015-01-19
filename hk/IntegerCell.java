@@ -1,6 +1,6 @@
 package hk;
 
-public class IntegerCell implements Cell<Integer>
+public class IntegerCell implements Cell<Integer>, Comparable<Cell<Integer>>
 {
 	private Integer value;
 
@@ -14,11 +14,6 @@ public class IntegerCell implements Cell<Integer>
 	}
 
 	@Override
-	public Cell<Integer> getReference(){
-		return this;
-	}
-
-	@Override
 	public Integer getValue(){
 		return value;
 	}
@@ -27,11 +22,6 @@ public class IntegerCell implements Cell<Integer>
 	public void setValue(Integer value)
 	{
 		this.value = value;
-	}
-
-	@Override
-	public Cell<Integer> getCell(){
-		return this;
 	}
 
 	public void setValue(Cell cell)
@@ -68,10 +58,5 @@ public class IntegerCell implements Cell<Integer>
 	@Override
 	public int compareTo(Cell<Integer> o){
 		return value.compareTo(o.getValue());
-	}
-
-	@Override
-	public Cell<Integer> getZeroCell(){
-		return new IntegerCell(0);
 	}
 }

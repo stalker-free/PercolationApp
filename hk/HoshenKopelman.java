@@ -11,7 +11,7 @@ public class HoshenKopelman
 {
 	private Cell<Integer>[][] initialLattice;
 	private Cell<Integer>[][] resultLattice;
-	private Map<Integer, Integer> sizes;
+	private Map<Integer, Integer> sizes = new HashMap<>();
 	private int countOfThreads;
 	private long timeElapsed;
 
@@ -54,13 +54,16 @@ public class HoshenKopelman
 
 	private void compute()
 	{
-		Cell<Integer> zero = initialLattice[0][0].getZeroCell();
 		// Don't create thread pool if only one is needed
 		if(countOfThreads == 1)
 		{
 			new IntegerCellMarker(new IntegerUnionFindHelper(),
-					new CellRange<>(initialLattice, zero),
-					new CellRange<>(resultLattice, zero)).run();
+					new CellRange<>(initialLattice),
+					new CellRange<>(resultLattice)).run();
+
+			// Relabel every center of the cluster
+			IntegerUnionFindHelper.relabel(resultLattice);
+			IntegerUnionFindHelper.clear();
 			return;
 		}
 
@@ -78,8 +81,8 @@ public class HoshenKopelman
 		// Insert tasks into pool
 		do{
 			end += colonForThread[i];
-			init = new CellRange<>(initialLattice, start, 0, end, initialLattice[0].length, zero);
-			result = new CellRange<>(resultLattice, start, 0, end, initialLattice[0].length, zero);
+			init = new CellRange<>(initialLattice, start, 0, end, initialLattice[0].length);
+			result = new CellRange<>(resultLattice, start, 0, end, initialLattice[0].length);
 			markers[i] = new IntegerCellMarker(new IntegerUnionFindHelper(), init, result);
 			start = end;
 		}while(++i < countOfThreads);
@@ -92,6 +95,10 @@ public class HoshenKopelman
 		// Wait all tasks and free resources
 		pool.shutdown();
 		while(!pool.isTerminated()){}
+
+		// Relabel every center of the cluster
+		IntegerUnionFindHelper.relabel(resultLattice);
+		IntegerUnionFindHelper.clear();
 	}
 
 	public void clusterize()
@@ -106,7 +113,7 @@ public class HoshenKopelman
 		calendar = Calendar.getInstance();
 		timeElapsed += calendar.getTimeInMillis();
 
-		sizes = new HashMap<>();
+		sizes.clear();
 		int val;
 		for(Cell<Integer>[] latticeRow : resultLattice)
 		{

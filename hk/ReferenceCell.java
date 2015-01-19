@@ -2,49 +2,28 @@ package hk;
 
 public class ReferenceCell<T extends Comparable<T>> implements Cell<T>
 {
-	private Cell<T> ref;
+	private int x, y;
 
-	public ReferenceCell(Cell<T> ref){
-		this.ref = ref;
+	public ReferenceCell(int x, int y){
+		this.x = x;
+		this.y = y;
+	}
+
+	public ReferenceCell(ReferenceCell<T> ref){
+		this(ref.x, ref.y);
 	}
 
 	@Override
-	public Cell<T> getReference(){
-		return ref;
-	}
-
-	public Cell<T> getCell()
-	{
-		Cell<T> prev, next = getReference();
-
-		do{
-			prev = next;
-			next = prev.getReference();
-		}while(prev != next);
-
-		return next;
-	}
+	public T getValue(){ return null; }
 
 	@Override
-	public T getValue()
-	{
-		return getCell().getValue();
+	public void setValue(T value){}
+
+	public int getX(){
+		return x;
 	}
 
-	@Override
-	public void setValue(T value)
-	{
-		getCell().setValue(value);
-	}
-
-	@Override
-	public int compareTo(Cell<T> o)
-	{
-		return getValue().compareTo(o.getValue());
-	}
-
-	@Override
-	public Cell<T> getZeroCell(){
-		return getCell().getZeroCell();
+	public int getY(){
+		return y;
 	}
 }
