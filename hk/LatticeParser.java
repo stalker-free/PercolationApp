@@ -1,5 +1,7 @@
 package hk;
 
+import hk.cell.*;
+
 import java.util.regex.*;
 
 public class LatticeParser

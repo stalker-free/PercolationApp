@@ -1,9 +1,13 @@
-package hk;
+package hk.utility;
+
+import hk.cell.*;
+import hk.CellRange;
 
 public class IntegerCellMarker implements Runnable
 {
 	private IntegerUnionFindHelper uf;
 	private CellRange<Integer> init, result;
+	private static final Cell<Integer> zero = new IntegerCell(0);
 
 	public IntegerCellMarker(IntegerUnionFindHelper uf, CellRange<Integer> init,
           CellRange<Integer> result)
@@ -16,7 +20,7 @@ public class IntegerCellMarker implements Runnable
 	@Override
 	public void run()
 	{
-		Cell<Integer> north, west, readOnly, zero = new IntegerCell(0);
+		Cell<Integer> north, west, readOnly;
 		int northValue, westValue;
 
 		for(CellRange<Integer>.CellIterator it =
@@ -45,22 +49,23 @@ public class IntegerCellMarker implements Runnable
 			{
 				// Mark lone cell as element of new cluster
 				uf.makeNewCluster(resultIt);
+
 			}
 			else if(northValue == 1 && westValue == 1)
 			{
 				north = resultIt.getReference(resultIt.getNorth(zero));
 				west = resultIt.getReference(resultIt.getWest(zero));
 
-				if(north.getValue() == null && west.getValue() == null)
+				if(north.isReference() && west.isReference())
 				{
 					uf.union(resultIt.get((ReferenceCell<Integer>)north),
 							resultIt.get((ReferenceCell<Integer>)west));
 				}
-				else if(north.getValue() == null)
+				else if(north.isReference())
 				{
 					uf.union(resultIt.get((ReferenceCell<Integer>)north), west);
 				}
-				else if(west.getValue() == null)
+				else if(west.isReference())
 				{
 					uf.union(north, resultIt.get((ReferenceCell<Integer>)west));
 				}
@@ -69,7 +74,6 @@ public class IntegerCellMarker implements Runnable
 					uf.union(north, west);
 				}
 
-				// TODO: Remember to merge clusters...
 				resultIt.set(resultIt.getWestReference());
 			}
 			else if(northValue == 1)
@@ -79,6 +83,11 @@ public class IntegerCellMarker implements Runnable
 			else
 			{
 				resultIt.set(resultIt.getWestReference());
+				if(it.getNorth(zero, 0).getValue() != 0)
+				{
+					IntegerUnionFindHelper.insertBoundaryLabel(resultIt.getCurrentX(),
+							resultIt.getCurrentY());
+				}
 			}
 		}
 	}

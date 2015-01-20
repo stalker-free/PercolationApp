@@ -1,6 +1,6 @@
-package hk;
+package hk.utility;
 
-public class Pair
+public class Pair implements Comparable<Pair>
 {
 	private int first;
 	private int last;
@@ -26,5 +26,13 @@ public class Pair
 
 	public void setLast(int last){
 		this.last = last;
+	}
+
+	@Override
+	public int compareTo(Pair o)
+	{
+		if(first < o.first ) return -1;
+		if(first > o.first) return 1;
+		return Integer.compare(last, o.last);
 	}
 }

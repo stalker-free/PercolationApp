@@ -1,7 +1,9 @@
 package hk;
 
+import hk.cell.*;
+import hk.utility.*;
+
 import java.util.*;
-import java.util.concurrent.*;
 
 /**
  * This class is created for wrapping lattice
@@ -36,69 +38,35 @@ public class HoshenKopelman
 		this.countOfThreads = countOfThreads;
 	}
 
-	private int[] generateBounds(int areasCount)
-	{
-		int bounds[] = new int[areasCount];
-
-		int remaining = initialLattice.length % countOfThreads;
-		int quotient = (initialLattice.length - remaining) / countOfThreads;
-
-		Arrays.fill(bounds, quotient);
-		for(int i = 0 ; remaining > 0 ; ++i, --remaining)
-		{
-			++bounds[i];
-		}
-
-		return bounds;
-	}
-
 	private void compute()
 	{
 		// Don't create thread pool if only one is needed
-		if(countOfThreads == 1)
+		if(countOfThreads < 2)
 		{
+			CellRange<Integer> result = new CellRange<>(resultLattice);
 			new IntegerCellMarker(new IntegerUnionFindHelper(),
-					new CellRange<>(initialLattice),
-					new CellRange<>(resultLattice)).run();
+				new CellRange<>(initialLattice), result).run();
 
 			// Relabel every center of the cluster
 			IntegerUnionFindHelper.relabel(resultLattice);
 			IntegerUnionFindHelper.clear();
+
+			new IntegerLatticeCreator(result).run();
+
 			return;
 		}
 
-		// Fill array for further range distribution through threads
-		int colonForThread[] = generateBounds(countOfThreads);
-
-		// Initialise the thread pool
-		ExecutorService pool = Executors.newFixedThreadPool(countOfThreads);
-		int start = 0, end = 0, i = 0;
-
-		CellRange<Integer> init;
-		CellRange<Integer> result;
-		IntegerCellMarker[] markers = new IntegerCellMarker[countOfThreads];
-
-		// Insert tasks into pool
-		do{
-			end += colonForThread[i];
-			init = new CellRange<>(initialLattice, start, 0, end, initialLattice[0].length);
-			result = new CellRange<>(resultLattice, start, 0, end, initialLattice[0].length);
-			markers[i] = new IntegerCellMarker(new IntegerUnionFindHelper(), init, result);
-			start = end;
-		}while(++i < countOfThreads);
-
-		// Run tasks
-		for(IntegerCellMarker marker : markers){
-			pool.execute(marker);
-		}
-
-		// Wait all tasks and free resources
-		pool.shutdown();
-		while(!pool.isTerminated()){}
+		AlgorithmExecutor executor =
+				new AlgorithmExecutor(initialLattice, resultLattice, countOfThreads);
+		executor.runMarkers();
+		executor.runCorrectors();
 
 		// Relabel every center of the cluster
 		IntegerUnionFindHelper.relabel(resultLattice);
 		IntegerUnionFindHelper.clear();
+
+		executor.createResultLattice();
+		executor.freeResources();
 	}
 
 	public void clusterize()

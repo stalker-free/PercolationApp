@@ -1,5 +1,7 @@
 package hk;
 
+import hk.cell.*;
+
 import java.util.Iterator;
 
 /**
@@ -81,24 +83,24 @@ public class CellRange<T extends Comparable<T>> implements Iterable<Cell<T>>
 			return getWest(null);
 		}
 
+		public Cell<T> getCell()
+		{
+			return this.getCell(this.get());
+		}
+
 		public Cell<T> getCell(Cell<T> cell)
 		{
-			Cell<T> ref = getReference(cell);
-			return get((ReferenceCell<T>)ref);
+			return ReferenceCell.getCell(origin, cell);
+		}
+
+		public Cell<T> getReference()
+		{
+			return this.getReference(this.get());
 		}
 
 		public Cell<T> getReference(Cell<T> cell)
 		{
-			if(cell.getValue() != null) return cell;
-			Cell<T> result = cell;
-			ReferenceCell<T> ref = (ReferenceCell<T>)result;
-			while(result.getValue() == null)
-			{
-				// The cell is the reference to another cell.
-				ref = (ReferenceCell<T>)result;
-				result = get(ref);
-			}
-			return ref;
+			return ReferenceCell.getReference(origin, cell);
 		}
 
 		public Cell<T> get()
@@ -108,7 +110,7 @@ public class CellRange<T extends Comparable<T>> implements Iterable<Cell<T>>
 
 		public Cell<T> get(ReferenceCell<T> ref)
 		{
-			return origin[ref.getX()][ref.getY()];
+			return ref.getValueFrom(origin);
 		}
 
 		public Cell<T> getNorthReference()

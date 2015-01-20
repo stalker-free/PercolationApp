@@ -1,4 +1,4 @@
-package hk;
+package hk.cell;
 
 public class IntegerCell implements Cell<Integer>, Comparable<Cell<Integer>>
 {
@@ -58,5 +58,10 @@ public class IntegerCell implements Cell<Integer>, Comparable<Cell<Integer>>
 	@Override
 	public int compareTo(Cell<Integer> o){
 		return value.compareTo(o.getValue());
+	}
+
+	@Override
+	public boolean isReference(){
+		return false;
 	}
 }

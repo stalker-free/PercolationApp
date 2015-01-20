@@ -1,6 +1,11 @@
-package hk;
+package hk.utility;
+
+import hk.cell.*;
+import hk.CellRange;
 
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Class, which provides methods for Hoshen-Kopelman algorithm.
@@ -8,9 +13,10 @@ import java.util.*;
 public class IntegerUnionFindHelper
 {
 	private Map<Integer, Integer> labels = new HashMap<>();
-	private static Set<Pair> unitedLabels = new LinkedHashSet<>();
-	private static Map<Integer, Pair> globalLabels = new HashMap<>();
-	private static int nextLatticeLabel;
+	private static ConcurrentSkipListSet<Pair> unitedLabels = new ConcurrentSkipListSet<>();
+	private static ConcurrentSkipListSet<Pair> boundariesLabels = new ConcurrentSkipListSet<>();
+	private static ConcurrentMap<Integer, Pair> globalLabels = new ConcurrentSkipListMap<>();
+	private static AtomicInteger nextLatticeLabel = new AtomicInteger();
 
 	public IntegerUnionFindHelper(){}
 
@@ -52,7 +58,7 @@ public class IntegerUnionFindHelper
 
 		int result = find(min);
 		labels.put(result, find(max));
-		unitedLabels.add(new Pair(min.getValue(), max.getValue()));
+		uniteLabels(min.getValue(), max.getValue());
 
 		return min.getValue();
 	}
@@ -60,13 +66,14 @@ public class IntegerUnionFindHelper
 	/**
 	 * Create new cluster label.
 	 */
-	public void makeNewCluster(CellRange<Integer>.CellIterator iterator)
+	public int makeNewCluster(CellRange.CellIterator iterator)
 	{
 		int valueToAdd = nextLabel();
 		labels.put(valueToAdd, valueToAdd);
 		valueToAdd += 1;
 		globalLabels.put(valueToAdd, new Pair(iterator.getCurrentX(), iterator.getCurrentY()));
 		iterator.set(new IntegerCell(valueToAdd));
+		return valueToAdd;
 	}
 
 	/**
@@ -74,6 +81,8 @@ public class IntegerUnionFindHelper
 	 */
 	public static void relabel(Cell<Integer>[][] lattice)
 	{
+
+		mergeBoundaryLabels(lattice);
 		// Get the list of label intersection.
 		List<TreeSet<Integer>> labelsOfSameCluster = getLabelIntersections();
 		Pair pair;
@@ -94,9 +103,26 @@ public class IntegerUnionFindHelper
 		}
 	}
 
-	private static synchronized int nextLabel()
+	public static void uniteLabels(int first, int second)
 	{
-		return nextLatticeLabel++;
+		if(first > second)
+		{
+			unitedLabels.add(new Pair(second, first));
+		}
+		else
+		{
+			unitedLabels.add(new Pair(first, second));
+		}
+	}
+
+	public static void insertBoundaryLabel(int x, int y)
+	{
+		boundariesLabels.add(new Pair(x, y));
+	}
+
+	private static int nextLabel()
+	{
+		return nextLatticeLabel.getAndIncrement();
 	}
 
 	public HashMap<Integer, Integer> getLabels()
@@ -108,25 +134,49 @@ public class IntegerUnionFindHelper
 		this.labels = new HashMap<>(labels);
 	}
 
+	private static void mergeBoundaryLabels(Cell<Integer>[][] lattice)
+	{
+		Cell<Integer> north, west;
+		int x, y;
+
+		for(Pair coordinates : boundariesLabels)
+		{
+			x = coordinates.getFirst();
+			y = coordinates.getLast();
+			if(x > 0 && y > 0)
+			{
+				north = ReferenceCell.getCell(lattice, lattice[x - 1][y]);
+				west = ReferenceCell.getCell(lattice, lattice[x][y - 1]);
+
+				uniteLabels(north.getValue(), west.getValue());
+			}
+		}
+	}
+
 	/**
 	 * Returns a list which contains label intersection.
 	 * @return list containing label intersection.
 	 */
 	private static List<TreeSet<Integer>> getLabelIntersections()
 	{
-		List<TreeSet<Integer>> result = new ArrayList<>();
-		TreeSet<Integer> indexes = new TreeSet<>();
+		// If unions are absent, return empty list
+		Iterator<Pair> it = unitedLabels.iterator();
+		if(!it.hasNext())
+		{
+			return new ArrayList<>();
+		}
 
 		// Add first pair
-		Iterator<Pair> it = unitedLabels.iterator();
-		if(!it.hasNext()) return result;
+		List<TreeSet<Integer>> result = new ArrayList<>();
 		Pair pair = it.next();
 		result.add(new TreeSet<Integer>());
 		Collections.addAll(result.get(0), pair.getFirst(), pair.getLast());
 
 		// Add other pairs
 		int found;
-		for(; it.hasNext() ; )
+		TreeSet<Integer> indexes = new TreeSet<>();
+		TreeSet<Integer> set;
+		while(it.hasNext())
 		{
 			found = 0;
 			indexes.clear();
@@ -135,14 +185,15 @@ public class IntegerUnionFindHelper
 			// Find already inserted labels
 			for(int i = 0 ; i < result.size() ; ++i)
 			{
-				if(result.get(i).contains(pair.getFirst()))
+				set = result.get(i);
+				if(set.contains(pair.getFirst()))
 				{
 					indexes.add(i);
 					++found;
 					if(found > 1) break;
 				}
 
-				if(result.get(i).contains(pair.getLast()))
+				if(set.contains(pair.getLast()))
 				{
 					indexes.add(i);
 					++found;
@@ -175,8 +226,9 @@ public class IntegerUnionFindHelper
 
 	public static void clear()
 	{
-		nextLatticeLabel = 0;
+		nextLatticeLabel.set(0);
 		unitedLabels.clear();
+		boundariesLabels.clear();
 		globalLabels.clear();
 	}
 }
