@@ -1,38 +1,63 @@
 package hk.utility;
 
-public class Pair implements Comparable<Pair>
+public class Pair<A extends Comparable<A>,
+		B extends Comparable<B>> implements Comparable<Pair<A, B>>
 {
-	private int first;
-	private int last;
+	private A first;
+	private B last;
 
-	public Pair(){}
-
-	public Pair(int first, int last){
+	public Pair(A first, B last){
 		this.first = first;
 		this.last = last;
 	}
 
-	public int getFirst(){
+	public A getFirst(){
 		return first;
 	}
 
-	public void setFirst(int first){
+	public void setFirst(A first){
 		this.first = first;
 	}
 
-	public int getLast(){
+	public B getLast(){
 		return last;
 	}
 
-	public void setLast(int last){
+	public void setLast(B last){
 		this.last = last;
 	}
 
 	@Override
-	public int compareTo(Pair o)
+	public int compareTo(Pair<A, B> o)
 	{
-		if(first < o.first ) return -1;
-		if(first > o.first) return 1;
-		return Integer.compare(last, o.last);
+		int cmp = first.compareTo(o.first);
+		if(cmp != 0)
+		{
+			return cmp;
+		}
+		return last.compareTo(o.last);
+	}
+
+	@Override
+	public boolean equals(Object o){
+		if(this == o){
+			return true;
+		}
+
+		if(!(o instanceof Pair)){
+			return false;
+		}
+
+		Pair<A, B> pair = (Pair<A, B>)o;
+
+		return this.compareTo(pair) == 0;
+	}
+
+	@Override
+	public int hashCode(){
+		int result = 20;
+		result = 31 * result + first.hashCode();
+		result = 31 * result + last.hashCode();
+		return result;
 	}
 }

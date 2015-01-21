@@ -21,7 +21,7 @@ public class IntegerCellMarker implements Runnable
 	public void run()
 	{
 		Cell<Integer> north, west, readOnly;
-		int northValue, westValue;
+		Integer northValue, westValue;
 
 		for(CellRange<Integer>.CellIterator it =
 		    (CellRange<Integer>.CellIterator)init.iterator(),
