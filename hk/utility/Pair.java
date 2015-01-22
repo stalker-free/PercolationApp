@@ -1,11 +1,19 @@
 package hk.utility;
 
+/**
+ * Class combining 2 comparable value into one.
+ * @param <A> type of the first field.
+ * @param <B> type of the second field.
+ */
 public class Pair<A extends Comparable<A>,
 		B extends Comparable<B>> implements Comparable<Pair<A, B>>
 {
 	private A first;
 	private B last;
 
+	/**
+	 * Constructs new pair from 2 given objects.
+	 */
 	public Pair(A first, B last){
 		this.first = first;
 		this.last = last;
@@ -59,5 +67,11 @@ public class Pair<A extends Comparable<A>,
 		result = 31 * result + first.hashCode();
 		result = 31 * result + last.hashCode();
 		return result;
+	}
+
+	@Override
+	public String toString(){
+		return "Pair{first=" + first +
+				", last=" + last + '}';
 	}
 }

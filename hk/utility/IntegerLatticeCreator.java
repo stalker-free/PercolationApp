@@ -3,7 +3,9 @@ package hk.utility;
 import hk.*;
 import hk.cell.*;
 
-public class IntegerLatticeCreator implements Runnable
+import java.util.concurrent.*;
+
+public class IntegerLatticeCreator implements Runnable, Callable<Void>
 {
 	private static final Cell<Integer> zero = new IntegerCell(0);
 	private CellRange<Integer> result;
@@ -29,5 +31,11 @@ public class IntegerLatticeCreator implements Runnable
 			// Give to the current cell a label
 			it.set(it.getCell());
 		}
+	}
+
+	@Override
+	public Void call() throws Exception{
+		run();
+		return null;
 	}
 }

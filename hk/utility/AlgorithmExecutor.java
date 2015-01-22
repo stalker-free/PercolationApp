@@ -6,23 +6,30 @@ import hk.cell.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ * Class for running various parallel tasks.
+ */
 public class AlgorithmExecutor
 {
 	private int countOfThreads;
-	private Future<?>[] barrier;
 	private ExecutorService pool;
 	private CellRange<Integer>[] init;
 	private CellRange<Integer>[] result;
 	private Cell<Integer>[][] initialLattice;
-	private Cell<Integer>[][] resultLattice;
 
+	/**
+	 * Constructs this class to perform parallel task operating.
+	 * @param initialLattice input lattice.
+	 * @param resultLattice output lattice.
+	 * @param countOfThreads the count of threads to create.
+	 */
 	public AlgorithmExecutor(Cell<Integer>[][] initialLattice,
          Cell<Integer>[][] resultLattice, int countOfThreads)
 	{
+		if(countOfThreads < 1) throw new IllegalArgumentException();
 		// First bind required fields
 		this.countOfThreads = countOfThreads;
 		this.initialLattice = initialLattice;
-		this.resultLattice = resultLattice;
 
 		// Fill array for further range distribution through threads
 		int colonForThread[] = generateBounds(this.countOfThreads);
@@ -31,7 +38,6 @@ public class AlgorithmExecutor
 		pool = Executors.newFixedThreadPool(this.countOfThreads);
 		init = new CellRange[this.countOfThreads];
 		result = new CellRange[this.countOfThreads];
-		barrier = new Future[this.countOfThreads];
 
 		int start = 0, end = 0;
 
@@ -40,12 +46,17 @@ public class AlgorithmExecutor
 			end += colonForThread[i];
 			init[i] = new CellRange<>(this.initialLattice, start, 0,
 					end, this.initialLattice[0].length);
-			result[i] = new CellRange<>(this.resultLattice, start, 0,
-					end, this.initialLattice[0].length);
+			result[i] = new CellRange<>(resultLattice, start, 0,
+					end, resultLattice[0].length);
 			start = end;
 		}
 	}
 
+	/**
+	 * Creates an array to distribute uniformly tasks through threads.
+	 * @param areasCount the count of threads for next execution.
+	 * @return Array containing uniformly distributed integers.
+	 */
 	private int[] generateBounds(int areasCount)
 	{
 		int bounds[] = new int[areasCount];
@@ -62,68 +73,73 @@ public class AlgorithmExecutor
 		return bounds;
 	}
 
-	public boolean runMarkers()
+	/**
+	 * Start cell marker's task.
+	 */
+	public void runMarkers()
 	{
-		IntegerCellMarker[] markers = new IntegerCellMarker[countOfThreads];
-		for(int i = 0 ; i < markers.length ; i++){
-			markers[i] = new IntegerCellMarker(new IntegerUnionFindHelper(), init[i], result[i]);
+		List<Callable<Void>> markers = new ArrayList<>(countOfThreads);
+
+		for(int i = 0 ; i < countOfThreads ; i++){
+			markers.add(new IntegerCellMarker(new IntegerUnionFindHelper(), init[i], result[i]));
 		}
 
 		runTask(markers);
-
-		return waitTask(markers);
 	}
 
-	public boolean runCorrectors()
+	/**
+	 * Start boundaries' corrector's task.
+	 */
+	public void runCorrectors()
 	{
-		BoundaryIntegersCorrector[] correctors = new BoundaryIntegersCorrector[countOfThreads - 1];
+		if(countOfThreads < 2) return;
+		List<Callable<Void>> correctors = new ArrayList<>(countOfThreads - 1);
 		for(int i = 1 ; i < countOfThreads ; ++i)
 		{
-			correctors[i - 1] = new BoundaryIntegersCorrector(result[i]);
+			correctors.add(new BoundaryIntegersCorrector(result[i]));
 		}
 
-		// Merge the bound labels
 		runTask(correctors);
-
-		return waitTask(correctors);
 	}
 
-	public boolean createResultLattice()
+	/**
+	 * Start result lattice creator's task.
+	 */
+	public void createResultLattice()
 	{
-		IntegerLatticeCreator[] creators = new IntegerLatticeCreator[countOfThreads];
+		List<Callable<Void>> creators = new ArrayList<>(countOfThreads);
 		for(int i = 0 ; i < countOfThreads ; i++){
-			creators[i] = new IntegerLatticeCreator(result[i]);
+			creators.add(new IntegerLatticeCreator(result[i]));
 		}
 
 		runTask(creators);
-
-		return waitTask(creators);
 	}
 
-	private void runTask(Runnable[] tasks)
-	{
-		for(int i = 0 ; i < tasks.length ; ++i){
-			barrier[i] = pool.submit(tasks[i]);
-		}
-	}
-
-	private boolean waitTask(Runnable[] tasks)
+	/**
+	 * Execute task on distributed ranges.
+	 * @param tasks callable object to execute.
+	 */
+	private void runTask(List<Callable<Void>> tasks)
 	{
 		try{
-			for(int i = 0 ; i < tasks.length ; ++i){
-				barrier[i].get();
-			}
+			pool.invokeAll(tasks);
 		}
-		catch(InterruptedException | ExecutionException e){
+		catch(InterruptedException e){
 			e.printStackTrace();
-			return false;
 		}
-		return true;
 	}
 
+	/**
+	 * Shutdowns the threads pool.
+	 * After that the executor can't be used anymore.
+	 */
 	public void freeResources()
 	{
 		pool.shutdown();
 		while(!pool.isTerminated()){}
+	}
+
+	public int getCountOfThreads(){
+		return countOfThreads;
 	}
 }

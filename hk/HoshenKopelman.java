@@ -17,10 +17,18 @@ public class HoshenKopelman
 	private int countOfThreads;
 	private long timeElapsed;
 
+	/**
+	 * Constructs the object with specified lattice.
+	 * @param lattice two-dimensional array of cells.
+	 */
 	public HoshenKopelman(Cell<Integer>[][] lattice){
 		this(lattice, 1);
 	}
 
+	/**
+	 * Constructs the object with specified lattice and thread number.
+	 * @param lattice two-dimensional array of cells.
+	 */
 	public HoshenKopelman(Cell<Integer>[][] lattice, int countOfThreads)
 	{
 		if(countOfThreads < 1)
@@ -38,6 +46,9 @@ public class HoshenKopelman
 		this.countOfThreads = countOfThreads;
 	}
 
+	/**
+	 * Run actual algorithm.
+	 */
 	private void compute()
 	{
 		// Don't create thread pool if only one is needed
@@ -69,6 +80,9 @@ public class HoshenKopelman
 		executor.freeResources();
 	}
 
+	/**
+	 * Run algorithm and take statistic.
+	 */
 	public void clusterize()
 	{
 		resultLattice = new Cell[initialLattice.length][initialLattice[0].length];
@@ -101,6 +115,10 @@ public class HoshenKopelman
 		}
 	}
 
+	/**
+	 * Checks if the algorithm is correct.
+	 * @return Mark of algorithm's correctness.
+	 */
 	public boolean test()
 	{
 		int north, east, west, south;
@@ -157,7 +175,6 @@ public class HoshenKopelman
 
 		if(resultLattice != null && sizes != null)
 		{
-			int i = 1;
 			buf.append("Size of clusters:").append(endLine);
 			for(Map.Entry<Integer, Integer> size : sizes.entrySet())
 			{
@@ -168,12 +185,18 @@ public class HoshenKopelman
 		return buf.toString();
 	}
 
+	/**
+	 * Returns the string representation of available lattice.
+	 */
 	public String getPrintableLattice()
 	{
 		return toPrintableLattice((resultLattice == null) ?
 				initialLattice : resultLattice);
 	}
 
+	/**
+	 * Returns the string representation of the lattice.
+	 */
 	private String toPrintableLattice(Cell[][] cells)
 	{
 		StringBuffer buf = new StringBuffer();

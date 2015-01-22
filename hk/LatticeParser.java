@@ -4,6 +4,9 @@ import hk.cell.*;
 
 import java.util.regex.*;
 
+/**
+ * Class which loads a lattice from a char sequence.
+ */
 public class LatticeParser
 {
 	/**

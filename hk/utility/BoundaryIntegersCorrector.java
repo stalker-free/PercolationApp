@@ -3,7 +3,12 @@ package hk.utility;
 import hk.*;
 import hk.cell.*;
 
-public class BoundaryIntegersCorrector implements Runnable
+import java.util.concurrent.*;
+
+/**
+ * Class which bounds nearest cell ranges among each other.
+ */
+public class BoundaryIntegersCorrector implements Runnable, Callable<Void>
 {
 	private static final Cell<Integer> zero = new IntegerCell(0);
 	private CellRange<Integer> result;
@@ -39,5 +44,11 @@ public class BoundaryIntegersCorrector implements Runnable
 			IntegerUnionFindHelper.uniteLabels(value,
 					it.getCell().getValue());
 		}
+	}
+
+	@Override
+	public Void call() throws Exception{
+		run();
+		return null;
 	}
 }

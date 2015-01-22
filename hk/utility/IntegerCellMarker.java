@@ -3,7 +3,12 @@ package hk.utility;
 import hk.cell.*;
 import hk.CellRange;
 
-public class IntegerCellMarker implements Runnable
+import java.util.concurrent.*;
+
+/**
+ * Class for setting raw result lattice.
+ */
+public class IntegerCellMarker implements Runnable, Callable<Void>
 {
 	private IntegerUnionFindHelper uf;
 	private CellRange<Integer> init, result;
@@ -53,24 +58,30 @@ public class IntegerCellMarker implements Runnable
 			}
 			else if(northValue == 1 && westValue == 1)
 			{
+				// Get nearest reference to cluster
+				// centers of each neighbour cells
 				north = resultIt.getReference(resultIt.getNorth(zero));
 				west = resultIt.getReference(resultIt.getWest(zero));
 
 				if(north.isReference() && west.isReference())
 				{
+					// Both cell are references
 					uf.union(resultIt.get((ReferenceCell<Integer>)north),
 							resultIt.get((ReferenceCell<Integer>)west));
 				}
 				else if(north.isReference())
 				{
+					// North cell is reference
 					uf.union(resultIt.get((ReferenceCell<Integer>)north), west);
 				}
 				else if(west.isReference())
 				{
+					// West cell is reference
 					uf.union(north, resultIt.get((ReferenceCell<Integer>)west));
 				}
 				else
 				{
+					// Both cell contains value
 					uf.union(north, west);
 				}
 
@@ -83,6 +94,7 @@ public class IntegerCellMarker implements Runnable
 			else
 			{
 				resultIt.set(resultIt.getWestReference());
+				// Check the bound of range
 				if(it.getNorth(zero, 0).getValue() != 0)
 				{
 					IntegerUnionFindHelper.insertBoundaryLabel(resultIt.getCurrentX(),
@@ -90,5 +102,11 @@ public class IntegerCellMarker implements Runnable
 				}
 			}
 		}
+	}
+
+	@Override
+	public Void call() throws Exception{
+		run();
+		return null;
 	}
 }

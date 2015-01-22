@@ -1,13 +1,23 @@
 package hk.cell;
 
+/**
+ * Implementation providing methods for manipulation with integer cell.
+ */
 public class IntegerCell implements Cell<Integer>, Comparable<Cell<Integer>>
 {
 	private Integer value;
 
+	/**
+	 * Constructs cell from given integer.
+	 */
 	public IntegerCell(int value){
 		setValue(value);
 	}
 
+	/**
+	 * Constructs cell by taking integer from given cell.
+	 * @param cell non-reference cell.
+	 */
 	public IntegerCell(Cell cell)
 	{
 		setValue(cell);
@@ -24,16 +34,23 @@ public class IntegerCell implements Cell<Integer>, Comparable<Cell<Integer>>
 		this.value = value;
 	}
 
+	/**
+	 * Sets the underlying value by receiving it from another cell.
+	 * @param cell non-reference cell.
+	 */
 	public void setValue(Cell cell)
 	{
-		this.value = new Integer(String.valueOf(cell.getValue()));
+		Object value = cell.getValue();
+		if(cell.isReference() || value == null)
+		{
+			throw new IllegalArgumentException();
+		}
+		this.value = new Integer(String.valueOf(value));
 	}
 
 	@Override
 	public String toString(){
-		return "IntegerCell{" +
-				"value=" + value +
-				'}';
+		return value.toString();
 	}
 
 	@Override
