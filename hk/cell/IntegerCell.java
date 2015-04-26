@@ -1,8 +1,10 @@
-package hk;
+package hk.cell;
 
 public class IntegerCell implements Cell
 {
 	private int value;
+
+	public IntegerCell(){}
 
 	public IntegerCell(int value){
 		this.value = value;
@@ -17,12 +19,5 @@ public class IntegerCell implements Cell
 	public void setValue(int value)
 	{
 		this.value = value;
-	}
-
-	@Override
-	public String toString(){
-		return "IntegerCell{" +
-				"value=" + value +
-				'}';
 	}
 }

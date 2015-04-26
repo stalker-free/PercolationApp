@@ -1,4 +1,4 @@
-package hk;
+package hk.cell;
 
 public interface Cell
 {

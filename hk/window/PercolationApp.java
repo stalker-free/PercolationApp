@@ -1,13 +1,14 @@
 package hk.window;
 
-import hk.HoshenKopelman;
-import hk.LatticeParser;
+import hk.Lattice;
+import hk.util.LatticeParser;
 
 import javax.swing.*;
 import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.util.Calendar;
 import java.util.regex.Pattern;
 
 public class PercolationApp extends JFrame
@@ -17,7 +18,7 @@ public class PercolationApp extends JFrame
 	private final JTextArea textArea;
 	private Document currentDocument;
 	private JFileChooser fileDialog;
-	private HoshenKopelman algorithm;
+	private Lattice lattice;
 
 	public PercolationApp()
 	{
@@ -68,7 +69,7 @@ public class PercolationApp extends JFrame
 	{
 		GenerateLatticeDialog dlg = new GenerateLatticeDialog(toolkit);
 		dlg.setVisible(true);
-		algorithm = dlg.getAlgorithm();
+		lattice = dlg.getLattice();
 	}
 
 	/**
@@ -95,7 +96,7 @@ public class PercolationApp extends JFrame
 			}
 
 			// Create lattice
-			algorithm = LatticeParser.parse(file);
+			lattice = LatticeParser.parse(file);
 
 			// Print message
 			writeToTextArea("File has loaded successfully.");
@@ -119,6 +120,20 @@ public class PercolationApp extends JFrame
 		// Set the title of the application
 		title.setTitle(path);
 		setTitle(title.getTitle());
+	}
+
+	private void launchAnExperiment()
+	{
+		LaunchAnExperimentDialog dlg = new LaunchAnExperimentDialog(toolkit);
+		dlg.setVisible(true);
+		try
+		{
+			writeToTextArea(getTimeElapsedString(dlg.getTimeElapsed()));
+		}
+		catch(BadLocationException ex)
+		{
+			ex.printStackTrace();
+		}
 	}
 
 	protected final void setSystemLookAndFeel()
@@ -145,6 +160,7 @@ public class PercolationApp extends JFrame
 		// Initialise items
 		JMenuItem newDoc = new JMenuItem("New");
 		JMenuItem openDoc = new JMenuItem("Open");
+		JMenuItem launchExperiment = new JMenuItem("Launch an experiment...");
 		JMenuItem exit = new JMenuItem("Exit");
 
 		// Add listeners to the menu items
@@ -170,6 +186,13 @@ public class PercolationApp extends JFrame
 			}
 		});
 
+		launchExperiment.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e){
+				launchAnExperiment();
+			}
+		});
+
 		exit.addActionListener(new ActionListener()
 		{
 			@Override
@@ -182,6 +205,8 @@ public class PercolationApp extends JFrame
 		// Add items to the File menu
 		fileMenu.add(newDoc);
 		fileMenu.add(openDoc);
+		fileMenu.addSeparator();
+		fileMenu.add(launchExperiment);
 		fileMenu.addSeparator();
 		fileMenu.add(exit);
 
@@ -201,25 +226,27 @@ public class PercolationApp extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				if(algorithm == null)
+				if(lattice == null)
 				{
-					JOptionPane.showMessageDialog((JComponent)e.getSource(),
-							"Lattice isn't initialised.", "Error", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog((JComponent)e.getSource(), "Lattice isn't initialised.", "Error", JOptionPane.ERROR_MESSAGE);
 					return;
 				}
 
-				// Get the number of threads (optional)
-				String numOfThreads =
-					JOptionPane.showInputDialog((JComponent)e.getSource(),
-					"Enter count of threads to run:", "Enter number of threads",
-					JOptionPane.PLAIN_MESSAGE);
-				if(numOfThreads != null && numOfThreads.trim().length() > 0)
-				{
-					algorithm.setCountOfThreads(Integer.valueOf(numOfThreads));
-				}
-
 				// Start the algorithm
-				algorithm.clusterize();
+				Calendar calendar = Calendar.getInstance();
+				long timeElapsed = -calendar.getTimeInMillis();
+				lattice.clusterize();
+				calendar = Calendar.getInstance();
+				timeElapsed += calendar.getTimeInMillis();
+
+				try
+				{
+					writeToTextArea(getTimeElapsedString(timeElapsed));
+				}
+				catch(BadLocationException ex)
+				{
+					ex.printStackTrace();
+				}
 			}
 		});
 
@@ -227,7 +254,7 @@ public class PercolationApp extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				if(algorithm == null)
+				if(lattice == null)
 				{
 					JOptionPane.showMessageDialog((JComponent)e.getSource(),
 							"Lattice isn't initialised.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -236,7 +263,7 @@ public class PercolationApp extends JFrame
 
 				try
 				{
-					writeToTextArea(algorithm.toString());
+					writeToTextArea(lattice.toString());
 				}
 				catch(BadLocationException ex)
 				{
@@ -262,5 +289,9 @@ public class PercolationApp extends JFrame
 		textArea.setText(currentDocument.getText(0, currentDocument.getLength()));
 		// Show the caret
 		textArea.getCaret().setVisible(true);
+	}
+
+	private String getTimeElapsedString(long timeElapsed){
+		return "Time elapsed during operation: " + timeElapsed + " ms" + System.lineSeparator();
 	}
 }

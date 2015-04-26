@@ -1,49 +1,74 @@
 package hk;
 
+import hk.cell.*;
+
 import java.util.*;
 
 /**
- * This class is created for wrapping lattice
- * and executing the Hoshen-Kopelman algorithm on it.
+ * Class, which provide methods for Hoshen-Kopelman algorithm.
  */
 public class HoshenKopelman
 {
-	private Cell[][] initialLattice;
-	private Cell[][] resultLattice;
-	private UnionFindHelper uf;
-	private int[] sizes;
-	private int countOfThreads;
-	private long timeElapsed;
+	private final List<Integer> labels = new ArrayList<>();
 
-	public HoshenKopelman(Cell[][] lattice){
-		this(lattice, 1);
-	}
-
-	public HoshenKopelman(Cell[][] lattice, int countOfThreads)
+	/**
+	 * Search for real cluster label.
+	 * @param cell cell for label searching.
+	 * @return Point to real cluster label of the cell.
+	 */
+	public int find(Cell cell)
 	{
-		if(countOfThreads < 1)
+		int index = cell.getValue();
+		if(index > 0) index -= 1;
+		while(index != labels.get(index))
 		{
-			throw new IllegalArgumentException("Object must have at least one thread.");
+			labels.set(index, labels.get(labels.get(index)));
+			index = labels.get(index);
 		}
-
-		initialLattice = new Cell[lattice.length][];
-
-		for(int i = 0 ; i < initialLattice.length ; i++)
-		{
-			initialLattice[i] = Arrays.copyOf(lattice[i], lattice[i].length);
-		}
-
-		this.countOfThreads = countOfThreads;
+		return index;
 	}
 
-	private void compute(CellRange init, CellRange result)
+	/**
+	 * Merge two neighbors clusters into one.
+	 * @param first,second cell of clusters.
+	 * @return Minimal label of resulting cluster.
+	 */
+	public int union(Cell first, Cell second)
+	{
+		Cell max, min;
+		if(first.getValue() < second .getValue())
+		{
+			min = first;
+			max = second;
+		}
+		else
+		{
+			min = second;
+			max = first;
+		}
+		int result = find(min);
+		labels.set(result, find(max));
+		return min.getValue();
+	}
+
+	/**
+	 * Create new cluster label.
+	 * @return New label.
+	 */
+	public int makeNewCluster()
+	{
+		labels.add(labels.size());
+		return labels.size();
+	}
+
+	public void compute(CellRange init, CellRange result)
 	{
 		Cell up, left, readOnly;
 		int upValue, leftValue;
 
 		for(CellRange.CellIterator it =
-		    (CellRange.CellIterator)init.iterator(),
-		    resultIt = (CellRange.CellIterator)result.iterator();
+				    (CellRange.CellIterator)init.iterator(),
+				    resultIt = (CellRange.CellIterator)result.iterator();
 		    it.hasNext() ;)
 		{
 			// Get next cells
@@ -66,7 +91,7 @@ public class HoshenKopelman
 			if(upValue == 0 && leftValue == 0)
 			{
 				// Mark lone cell as element of new cluster
-				resultIt.set(new IntegerCell(uf.makeNewCluster()));
+				resultIt.set(new IntegerCell(makeNewCluster()));
 			}
 			else if(upValue == 0 || leftValue == 0)
 			{
@@ -75,132 +100,42 @@ public class HoshenKopelman
 			}
 			else
 			{
-				resultIt.set(new IntegerCell(uf.union(resultIt.getNorth(), resultIt.getWest())));
+				resultIt.set(new IntegerCell(union(resultIt.getNorth(), resultIt.getWest())));
 			}
 		}
 	}
 
-	public void clusterize()
+	/**
+	 * Remove redundant cluster labels.
+	 * @param dataset lattice slice.
+	 * @return Count of new labels.
+	 */
+	public int relabel(CellRange dataset)
 	{
-		resultLattice = new Cell[initialLattice.length][initialLattice[0].length];
-		uf = new UnionFindHelper();
+		Map<Integer, Integer> labelSet = new HashMap<>();
+		int found;
+		Cell cell;
 
-		CellRange init = new CellRange(initialLattice);
-		CellRange result = new CellRange(resultLattice);
-
-		Calendar calendar = Calendar.getInstance();
-		timeElapsed = -calendar.getTimeInMillis();
-		compute(init, result);
-		calendar = Calendar.getInstance();
-		timeElapsed += calendar.getTimeInMillis();
-
-		sizes = new int[uf.relabel(result)];
-
-		int val;
-		for(Cell[] latticeRow : resultLattice)
+		CellRange.CellIterator it = (CellRange.CellIterator)dataset.iterator();
+		while(it.hasNext())
 		{
-			for(Cell elem : latticeRow)
+			cell = it.next();
+			if(cell.getValue() == 0) continue;
+
+			found = find(cell);
+			if(!labelSet.containsKey(found))
 			{
-				val = elem.getValue();
-				if(val > 0)
-				{
-					++sizes[val - 1];
-				}
+				labelSet.put(found, 1 + labelSet.size());
 			}
+
+			cell.setValue(labelSet.get(found));
 		}
+
+		return labelSet.size();
 	}
 
-	public void test()
+	public List<Integer> getLabels()
 	{
-		int north, east, west, south;
-		int rows = resultLattice.length, cols = resultLattice[0].length;
-		int current;
-		for(int i = 0 ; i < rows ; i++){
-			for(int j = 0 ; j < cols ; j++){
-				current = resultLattice[i][j].getValue();
-				if(current != 0)
-				{
-					north = (i == 0) ? 0 : resultLattice[i - 1][j].getValue();
-					south = (i == (rows - 1)) ? 0 : resultLattice[i + 1][j].getValue();
-					west = (j == 0) ? 0 : resultLattice[i][j - 1].getValue();
-					east = (j == (cols - 1)) ? 0 : resultLattice[i][j + 1].getValue();
-
-					assert (north == 0 || north == current);
-					assert (east == 0 || east == current);
-					assert (west == 0 || west == current);
-					assert (south == 0 || south == current);
-				}
-			}
-		}
-	}
-
-	@Override
-	public String toString()
-	{
-		StringBuffer buf = new StringBuffer();
-		Cell[][] cells;
-
-		final String endLine = System.lineSeparator();
-
-		if(resultLattice == null)
-		{
-			cells = initialLattice;
-			buf.append("The labels of initial lattice is ");
-		}
-		else
-		{
-			buf.append("Time spent for clusterizing: ").append(timeElapsed).
-					append(" ms").append(endLine);
-			cells = resultLattice;
-			buf.append("The labels of result lattice is ");
-		}
-
-		buf.append(cells.length).append("x").append(cells[0].length)
-				.append(".").append(endLine);
-
-		buf.append(toPrintableLattice(cells));
-
-		buf.append("Count of threads: ").append(countOfThreads)
-				.append(".").append(endLine);
-
-		if(resultLattice != null)
-		{
-			buf.append("Size of clusters:").append(endLine);
-			for(int i = 0 ; i < sizes.length ; ++i)
-			{
-				buf.append(i + 1).append(": ").append(sizes[i]).append(endLine);
-			}
-		}
-
-		return buf.toString();
-	}
-
-	public String getPrintableLattice()
-	{
-		return toPrintableLattice((resultLattice == null) ?
-				initialLattice : resultLattice);
-	}
-
-	private String toPrintableLattice(Cell[][] cells)
-	{
-		StringBuffer buf = new StringBuffer();
-		for(Cell[] cell : cells)
-		{
-			buf.append(cell[0].getValue());
-			for(int j = 1 ; j < cells[0].length ; j++)
-			{
-				buf.append(",").append(cell[j].getValue());
-			}
-			buf.append(System.lineSeparator());
-		}
-		return buf.toString();
-	}
-
-	public int getCountOfThreads(){
-		return countOfThreads;
-	}
-
-	public void setCountOfThreads(int countOfThreads){
-		this.countOfThreads = countOfThreads;
+		return labels;
 	}
 }

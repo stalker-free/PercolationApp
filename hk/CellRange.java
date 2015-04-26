@@ -1,5 +1,8 @@
 package hk;
 
+import hk.cell.*;
+import hk.util.TwoDimensionalPercolation;
+
 import java.util.Iterator;
 
 /**
@@ -122,5 +125,22 @@ public class CellRange implements Iterable<Cell>
 
 	public int getEndX(){
 		return endX;
+	}
+
+	public static CellRange getEdge(Cell[][] lattice,
+        TwoDimensionalPercolation byWhat, boolean inStart)
+	{
+		int where;
+		switch(byWhat)
+		{
+			case BY_X:
+				where = inStart ? 0 : (lattice.length - 1);
+				return new CellRange(lattice, 0, where, lattice.length, where + 1);
+			case BY_Y:
+				where = inStart ? 0 : (lattice[0].length - 1);
+				return new CellRange(lattice, where, 0, where + 1, lattice[0].length);
+		}
+
+		throw new IllegalArgumentException();
 	}
 }

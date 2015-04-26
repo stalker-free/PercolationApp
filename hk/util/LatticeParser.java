@@ -1,4 +1,7 @@
-package hk;
+package hk.util;
+
+import hk.Lattice;
+import hk.cell.*;
 
 import java.util.regex.*;
 
@@ -10,7 +13,7 @@ public class LatticeParser
 	 * @return ready lattice for applying Hoshen-Kopelman algorithm.
 	 * @throws NumberFormatException
 	 */
-	public static HoshenKopelman parse(CharSequence seq) throws NumberFormatException
+	public static Lattice parse(CharSequence seq) throws NumberFormatException
 	{
 		Pattern linePattern = Pattern.compile(";"),
 			colonPattern = Pattern.compile(",");
@@ -31,6 +34,6 @@ public class LatticeParser
 			elements = colonPattern.split(lines[i]);
 		}
 
-		return new HoshenKopelman(cells);
+		return new Lattice(cells);
 	}
 }

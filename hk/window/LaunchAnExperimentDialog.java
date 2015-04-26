@@ -1,30 +1,29 @@
 package hk.window;
 
-import hk.cell.Cell;
-import hk.Lattice;
-import hk.cell.IntegerCell;
+import hk.*;
 
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
-import java.awt.event.*;
+import javax.swing.text.*;
 import java.awt.*;
-import java.util.Random;
+import java.awt.event.*;
+import java.util.*;
 
-public class GenerateLatticeDialog extends JDialog {
+public class LaunchAnExperimentDialog extends JDialog {
 	private JPanel contentPane;
 	private JButton buttonOK;
 	private JButton buttonCancel;
-	private Lattice lattice;
 	private JTextField xField;
 	private JTextField yField;
-	private JTextField randomSeedField;
-	private JTextField chanceField;
+	private JTextField minProbabilityField;
+	private JTextField maxProbabilityField;
+	private JTextField probabilityIncrementField;
+	private JTextField maxExperimentCountField;
+	private long timeElapsed;
 
-	public GenerateLatticeDialog(Toolkit toolkit){
+	public LaunchAnExperimentDialog(Toolkit toolkit){
 		setContentPane(contentPane);
 		setResizable(false);
-		setTitle("Generate new lattice...");
+		setTitle("Run an experiment...");
 		setModal(true);
 		getRootPane().setDefaultButton(buttonOK);
 
@@ -69,26 +68,47 @@ public class GenerateLatticeDialog extends JDialog {
 			doc = yField.getDocument();
 			int cols = (int)convert(doc);
 
-			doc = randomSeedField.getDocument();
-			Random gen = (doc.getLength() > 0) ? new Random((int)convert(doc)) : new Random();
+			doc = minProbabilityField.getDocument();
+			double minChance = convert(doc);
 
-			doc = chanceField.getDocument();
-			double chance = convert(doc);
+			doc = maxProbabilityField.getDocument();
+			double maxChance = convert(doc);
 
-			// Generate random array
-			Cell[][] cells = new Cell[rows][cols];
+			doc = probabilityIncrementField.getDocument();
+			double step = convert(doc);
 
-			for(int i = 0 ; i < rows ; i++){
-				for(int j = 0 ; j < cols ; j++){
-					cells[i][j] = new IntegerCell((gen.nextDouble() < chance) ? 1 : 0);
-				}
-			}
+			doc = maxExperimentCountField.getDocument();
+			int countOfExperiments = (int)convert(doc);
 
-			// Now wrap it into the lattice
-			lattice = new Lattice(cells);
+			Random gen = new Random();
+			Lattice lattice = new Lattice();
 
 			// Leave the dialog
 			dispose();
+
+			// Generate random array
+			double[][] cells = new double[rows][cols];
+
+			Calendar calendar = Calendar.getInstance();
+			timeElapsed = -calendar.getTimeInMillis();
+			// Run experiments
+			for(int k = 0 ; k < countOfExperiments ; ++k){
+				// Fill array
+				for(int i = 0 ; i < rows ; i++){
+					for(int j = 0 ; j < cols ; j++){
+						cells[i][j] = gen.nextDouble();
+					}
+				}
+
+				// Calculate threshold
+				for(double current = minChance ; current < maxChance ; current += step){
+					lattice.generateNewLattice(cells, current);
+					lattice.clusterize();
+					lattice.checkEdges();
+				}
+			}
+			calendar = Calendar.getInstance();
+			timeElapsed += calendar.getTimeInMillis();
 		}
 		catch(BadLocationException e){
 			JOptionPane.showMessageDialog(this, "Access violation: attempt to read outside of the text.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -104,7 +124,7 @@ public class GenerateLatticeDialog extends JDialog {
 		dispose();
 	}
 
-	public Lattice getLattice(){
-		return lattice;
+	public long getTimeElapsed(){
+		return timeElapsed;
 	}
 }
