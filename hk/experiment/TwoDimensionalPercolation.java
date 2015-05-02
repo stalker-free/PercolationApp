@@ -1,6 +1,6 @@
-package hk.util;
+package hk.experiment;
 
-import hk.CellRange;
+import hk.cell.CellRange;
 import hk.cell.*;
 
 import java.util.*;
@@ -38,7 +38,7 @@ public enum TwoDimensionalPercolation
 
 	public static boolean isHaveIntersection(CellRange first, CellRange second)
 	{
-		Set<Comparable> firstSet = new HashSet<>(), secondSet = new HashSet<>();
+		Set<Integer> firstSet = new HashSet<>(), secondSet = new HashSet<>();
 		for(CellRange.CellIterator firstIt = (CellRange.CellIterator)first.iterator(),
 				    secondIt = (CellRange.CellIterator)second.iterator() ;
 				firstIt.hasNext() ;)
@@ -46,7 +46,7 @@ public enum TwoDimensionalPercolation
 			firstSet.add(firstIt.next().getValue());
 			secondSet.add(secondIt.next().getValue());
 		}
-		firstSet.remove(0.0);
+		firstSet.remove(0);
 		firstSet.retainAll(secondSet);
 
 		return !firstSet.isEmpty();

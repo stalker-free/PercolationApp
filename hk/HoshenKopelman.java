@@ -16,10 +16,10 @@ public class HoshenKopelman
 	 * @param cell cell for label searching.
 	 * @return Point to real cluster label of the cell.
 	 */
-	public int find(Cell cell)
+	private int find(Cell cell)
 	{
 		int index = cell.getValue();
-		if(index > 0) index -= 1;
+		if(index > 0) --index;
 		while(index != labels.get(index))
 		{
 			labels.set(index, labels.get(labels.get(index)));
@@ -33,7 +33,7 @@ public class HoshenKopelman
 	 * @param first,second cell of clusters.
 	 * @return Minimal label of resulting cluster.
 	 */
-	public int union(Cell first, Cell second)
+	private int union(Cell first, Cell second)
 	{
 		Cell max, min;
 		if(first.getValue() < second .getValue())
@@ -55,7 +55,7 @@ public class HoshenKopelman
 	 * Create new cluster label.
 	 * @return New label.
 	 */
-	public int makeNewCluster()
+	private int makeNewCluster()
 	{
 		labels.add(labels.size());
 		return labels.size();
@@ -67,8 +67,8 @@ public class HoshenKopelman
 		int upValue, leftValue;
 
 		for(CellRange.CellIterator it =
-				    (CellRange.CellIterator)init.iterator(),
-				    resultIt = (CellRange.CellIterator)result.iterator();
+		    (CellRange.CellIterator)init.iterator(),
+		    resultIt = (CellRange.CellIterator)result.iterator();
 		    it.hasNext() ;)
 		{
 			// Get next cells
@@ -78,7 +78,7 @@ public class HoshenKopelman
 			// If cell = zero then just skip it
 			if(readOnly.getValue() == 0)
 			{
-				resultIt.set(new IntegerCell(0));
+				resultIt.set(0);
 				continue;
 			}
 
@@ -91,16 +91,19 @@ public class HoshenKopelman
 			if(upValue == 0 && leftValue == 0)
 			{
 				// Mark lone cell as element of new cluster
-				resultIt.set(new IntegerCell(makeNewCluster()));
+				resultIt.set(makeNewCluster());
 			}
-			else if(upValue == 0 || leftValue == 0)
+			else if(upValue == 0)
 			{
-				resultIt.set(new IntegerCell(Math.max(resultIt.getNorth().getValue(),
-						resultIt.getWest().getValue())));
+				resultIt.set(resultIt.getWest().getValue());
+			}
+			else if(leftValue == 0)
+			{
+				resultIt.set(resultIt.getNorth().getValue());
 			}
 			else
 			{
-				resultIt.set(new IntegerCell(union(resultIt.getNorth(), resultIt.getWest())));
+				resultIt.set(union(resultIt.getNorth(), resultIt.getWest()));
 			}
 		}
 	}

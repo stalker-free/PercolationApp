@@ -1,6 +1,8 @@
 package hk.window;
 
-import hk.*;
+import hk.experiment.ExperimentOnPercolation;
+import hk.experiment.Statistic;
+import hk.util.Pair;
 
 import javax.swing.*;
 import javax.swing.text.*;
@@ -18,7 +20,8 @@ public class LaunchAnExperimentDialog extends JDialog {
 	private JTextField maxProbabilityField;
 	private JTextField probabilityIncrementField;
 	private JTextField maxExperimentCountField;
-	private long timeElapsed;
+	private Statistic statistic;
+	private Long timeElapsed = null;
 
 	public LaunchAnExperimentDialog(Toolkit toolkit){
 		setContentPane(contentPane);
@@ -61,54 +64,48 @@ public class LaunchAnExperimentDialog extends JDialog {
 
 	private void onOK(){
 		try{
+			ExperimentOnPercolation experiment;
+
 			// Prepare parameters
-			Document doc = xField.getDocument();
-			int rows = (int)convert(doc);
+			{
+				Document doc = xField.getDocument();
+				int rows = (int)convert(doc);
 
-			doc = yField.getDocument();
-			int cols = (int)convert(doc);
+				doc = yField.getDocument();
+				int cols = (int)convert(doc);
 
-			doc = minProbabilityField.getDocument();
-			double minChance = convert(doc);
+				Pair<Integer, Integer> size = new Pair<>(rows, cols);
 
-			doc = maxProbabilityField.getDocument();
-			double maxChance = convert(doc);
+				doc = minProbabilityField.getDocument();
+				double minChance = convert(doc);
 
-			doc = probabilityIncrementField.getDocument();
-			double step = convert(doc);
+				doc = maxProbabilityField.getDocument();
+				double maxChance = convert(doc);
 
-			doc = maxExperimentCountField.getDocument();
-			int countOfExperiments = (int)convert(doc);
+				Pair<Double, Double> chanceRange = new Pair<>(minChance, maxChance);
 
-			Random gen = new Random();
-			Lattice lattice = new Lattice();
+				doc = probabilityIncrementField.getDocument();
+				double step = convert(doc);
+
+				experiment = new ExperimentOnPercolation(size, chanceRange, step);
+
+				doc = maxExperimentCountField.getDocument();
+				int countOfExperiments = (int)convert(doc);
+
+				experiment.setCountOfExperiments(countOfExperiments);
+			}
 
 			// Leave the dialog
 			dispose();
 
-			// Generate random array
-			double[][] cells = new double[rows][cols];
-
+			// Run experiments
 			Calendar calendar = Calendar.getInstance();
 			timeElapsed = -calendar.getTimeInMillis();
-			// Run experiments
-			for(int k = 0 ; k < countOfExperiments ; ++k){
-				// Fill array
-				for(int i = 0 ; i < rows ; i++){
-					for(int j = 0 ; j < cols ; j++){
-						cells[i][j] = gen.nextDouble();
-					}
-				}
-
-				// Calculate threshold
-				for(double current = minChance ; current < maxChance ; current += step){
-					lattice.generateNewLattice(cells, current);
-					lattice.clusterize();
-					lattice.checkEdges();
-				}
-			}
+			experiment.run();
 			calendar = Calendar.getInstance();
 			timeElapsed += calendar.getTimeInMillis();
+
+			statistic = experiment.getStatistic();
 		}
 		catch(BadLocationException e){
 			JOptionPane.showMessageDialog(this, "Access violation: attempt to read outside of the text.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -118,13 +115,21 @@ public class LaunchAnExperimentDialog extends JDialog {
 			JOptionPane.showMessageDialog(this, "Nonnumerical symbol was entered.", "Error", JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
+		catch(IllegalArgumentException e){
+			JOptionPane.showMessageDialog(this, "A wrong parameter value was entered.", "Error", JOptionPane.ERROR_MESSAGE);
+			e.printStackTrace();
+		}
 	}
 
 	private void onCancel(){
 		dispose();
 	}
 
-	public long getTimeElapsed(){
+	public Long getTimeElapsed(){
 		return timeElapsed;
+	}
+
+	public Statistic getStatistic(){
+		return statistic;
 	}
 }

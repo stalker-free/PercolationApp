@@ -1,8 +1,7 @@
 package hk.window;
 
-import hk.cell.Cell;
+import hk.cell.*;
 import hk.Lattice;
-import hk.cell.IntegerCell;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
@@ -80,7 +79,7 @@ public class GenerateLatticeDialog extends JDialog {
 
 			for(int i = 0 ; i < rows ; i++){
 				for(int j = 0 ; j < cols ; j++){
-					cells[i][j] = new IntegerCell((gen.nextDouble() < chance) ? 1 : 0);
+					cells[i][j] = new Cell((gen.nextDouble() < chance) ? 1 : 0);
 				}
 			}
 

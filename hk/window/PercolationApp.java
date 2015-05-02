@@ -128,7 +128,11 @@ public class PercolationApp extends JFrame
 		dlg.setVisible(true);
 		try
 		{
-			writeToTextArea(getTimeElapsedString(dlg.getTimeElapsed()));
+			Long elapsed = dlg.getTimeElapsed();
+			if(elapsed != null)
+			{
+				writeToTextArea(getTimeElapsedString(elapsed) + dlg.getStatistic().toString());
+			}
 		}
 		catch(BadLocationException ex)
 		{

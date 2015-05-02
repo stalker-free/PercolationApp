@@ -1,7 +1,7 @@
 package hk;
 
 import hk.cell.*;
-import hk.util.TwoDimensionalPercolation;
+import hk.experiment.TwoDimensionalPercolation;
 
 import java.util.*;
 
@@ -13,6 +13,8 @@ public class Lattice
 {
 	private Cell[][] initialLattice;
 	private Cell[][] resultLattice;
+	private HoshenKopelman hk = new HoshenKopelman();
+	private boolean isComputed = false;
 
 	public Lattice()
 	{
@@ -21,24 +23,28 @@ public class Lattice
 	public Lattice(Cell[][] lattice)
 	{
 		initialLattice = new Cell[lattice.length][];
-
+		resultLattice = new Cell[lattice.length][lattice[0].length];
 		for(int i = 0 ; i < initialLattice.length ; i++)
 		{
 			initialLattice[i] = Arrays.copyOf(lattice[i], lattice[i].length);
+			for(int j = 0 ; j < initialLattice[i].length ; j++){
+				resultLattice[i][j] = new Cell();
+			}
 		}
 	}
 
 	public void clusterize()
 	{
-		resultLattice = new Cell[initialLattice.length][initialLattice[0].length];
-		HoshenKopelman hk = new HoshenKopelman();
+		hk.getLabels().clear();
 
 		CellRange init = new CellRange(initialLattice);
 		CellRange result = new CellRange(resultLattice);
 
 		hk.compute(init, result);
 
-		//hk.relabel(result);
+		hk.relabel(result);
+
+		isComputed = true;
 	}
 
 	public void test()
@@ -73,7 +79,7 @@ public class Lattice
 
 		final String endLine = System.lineSeparator();
 
-		if(resultLattice == null)
+		if(!isComputed)
 		{
 			cells = initialLattice;
 			buf.append("The sizes of initial lattice is ");
@@ -100,7 +106,7 @@ public class Lattice
 			buf.append(cell[0].getValue());
 			for(int j = 1 ; j < cells[0].length ; j++)
 			{
-				buf.append(",").append(cell[j].getValue());
+				buf.append(",").append(cell[j]);
 			}
 			buf.append(System.lineSeparator());
 		}
@@ -111,13 +117,14 @@ public class Lattice
 	{
 		if(initialLattice == null)
 		{
-			initialLattice = new Cell[array.length][];
+			initialLattice = new Cell[array.length][array[0].length];
+			resultLattice = new Cell[array.length][array[0].length];
 			for(int i = 0 ; i < initialLattice.length ; i++)
 			{
-				initialLattice[i] = new IntegerCell[array[i].length];
 				for(int j = 0 ; j < initialLattice[i].length ; j++)
 				{
-					initialLattice[i][j] = new IntegerCell();
+					initialLattice[i][j] = new Cell();
+					resultLattice[i][j] = new Cell();
 				}
 			}
 		}
@@ -129,6 +136,8 @@ public class Lattice
 				initialLattice[i][j].setValue((array[i][j] < chance) ? 1 : 0);
 			}
 		}
+
+		isComputed = false;
 	}
 
 	public TwoDimensionalPercolation checkEdges()

@@ -1,7 +1,6 @@
-package hk;
+package hk.cell;
 
-import hk.cell.*;
-import hk.util.TwoDimensionalPercolation;
+import hk.experiment.TwoDimensionalPercolation;
 
 import java.util.Iterator;
 
@@ -13,7 +12,7 @@ public class CellRange implements Iterable<Cell>
 	private int startX, startY;
 	private int endX, endY;
 	private Cell[][] origin;
-	private static final Cell ZERO_CELL = new IntegerCell(0);
+	public static final Cell ZERO_CELL = new Cell(0);
 
 	/**
 	 * Iterator for this class.
@@ -57,12 +56,12 @@ public class CellRange implements Iterable<Cell>
 
 		public Cell getNorth()
 		{
-			return (currentX > 0) ? origin[currentX - 1][currentY] : ZERO_CELL;
+			return (currentX > startX) ? origin[currentX - 1][currentY] : ZERO_CELL;
 		}
 
 		public Cell getWest()
 		{
-			return (currentY > 0) ? origin[currentX][currentY - 1] : ZERO_CELL;
+			return (currentY > startY) ? origin[currentX][currentY - 1] : ZERO_CELL;
 		}
 
 		public Cell get()
@@ -73,6 +72,11 @@ public class CellRange implements Iterable<Cell>
 		public void set(Cell value)
 		{
 			origin[currentX][currentY] = value;
+		}
+
+		public void set(int value)
+		{
+			origin[currentX][currentY].setValue(value);
 		}
 
 		public int getIterationNumber()

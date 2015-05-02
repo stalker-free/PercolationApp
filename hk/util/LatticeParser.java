@@ -28,7 +28,7 @@ public class LatticeParser
 		{
 			for(int j = 0 ; j < cols ; j++)
 			{
-				cells[i][j] = new IntegerCell(Integer.valueOf(elements[j]));
+				cells[i][j] = new Cell(Integer.valueOf(elements[j]));
 			}
 			if(++i >= rows || i < 0) break;
 			elements = colonPattern.split(lines[i]);
